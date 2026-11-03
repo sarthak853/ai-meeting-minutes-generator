@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI-Powered Meeting Minutes Generator</title>
+  <!-- Modern Inter Font & Tailwind CSS CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [contenteditable="true"] {
+      outline: 1px dashed transparent;
+      transition: all 0.2s ease;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+    [contenteditable="true"]:hover {
+      outline: 1px dashed #6366f1;
+      background-color: rgba(99, 102, 241, 0.05);
+    }
+    [contenteditable="true"]:focus {
+      outline: 2px solid #4f46e5;
+      background-color: #ffffff;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans selection:bg-brand-100 selection:text-brand-900">
+
+  <!-- Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm backdrop-blur-md bg-white/90">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">MinuteCraft AI</h1>
+          <p class="text-xs text-slate-400 font-medium">Enterprise Meeting Minutes Intelligence</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          Gemini 1.5 Flash Free Tier
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- Left Column: Input Transcript & Controls -->
+      <section class="lg:col-span-5 flex flex-col gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-brand-600"></span>
+              <h2 class="text-base font-bold text-slate-800">Transcript Input</h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnLoadSample" type="button" class="text-xs text-brand-600 hover:text-brand-700 font-semibold px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 transition-colors">
+                Load Sample
+              </button>
+              <button id="btnPaste" type="button" class="text-xs text-slate-600 hover:text-slate-800 font-medium px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                Paste
+              </button>
+            </div>
+          </div>
+
+          <!-- File Upload Drop Zone -->
+          <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-brand-50/20 group">
+            <input type="file" id="fileInput" accept=".txt,.docx" class="hidden" />
+            <div class="flex flex-col items-center justify-center gap-1.5 text-slate-500 group-hover:text-brand-600">
+              <svg class="w-7 h-7 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p class="text-xs font-semibold"><span class="underline">Upload a file</span> or drag and drop</p>
+              <p class="text-[11px] text-slate-400">Supports .txt and .docx transcripts</p>
+            </div>
+            <div id="fileInfo" class="hidden mt-2 p-2 bg-white rounded-lg border border-slate-200 text-xs text-slate-700 flex items-center justify-between">
+              <span id="fileName" class="font-medium truncate max-w-[200px]"></span>
+              <button id="btnRemoveFile" type="button" class="text-red-500 hover:text-red-700 font-bold ml-2">&times;</button>
+            </div>
+          </div>
+
+          <!-- Raw Transcript Text Area -->
+          <div class="flex flex-col gap-1.5">
+            <div class="flex justify-between items-center">
+              <label for="transcriptText" class="text-xs font-semibold text-slate-600">Or paste raw meeting dialogue:</label>
+              <span id="charCount" class="text-[11px] text-slate-400">0 characters</span>
+            </div>
+            <textarea id="transcriptText" rows="12" placeholder="Paste conversation transcript here...&#10;&#10;e.g.&#10;Alex: Let's confirm Light mode for Q3 release...&#10;Sarah: Agreed, I'll take that...&#10;David: What about account archiving?&#10;Alex: Let's keep account archiving pending for legal review..." class="w-full text-sm font-sans rounded-xl border border-slate-200 p-3.5 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none transition-all resize-y custom-scroll"></textarea>
+          </div>
+
+          <!-- Generate Action Button -->
+          <button id="btnGenerate" type="button" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-md shadow-brand-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>Generate Meeting Minutes</span>
+          </button>
+        </div>
+
+        <!-- Zero Hallucination Guarantee Card -->
+        <div class="bg-indigo-50/60 rounded-xl border border-indigo-100 p-4 text-xs text-indigo-900 flex items-start gap-3">
+          <div class="w-5 h-5 rounded-full bg-indigo-200 text-indigo-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">✓</div>
+          <div>
+            <p class="font-bold mb-0.5">Strict Zero-Hallucination & Anti-Inventive Protocol</p>
+            <p class="text-indigo-700 leading-relaxed">
+              Every decision, action item owner, and discussion topic is strictly verified against the transcript. Deadlines without dates fallback to <code class="bg-indigo-100 px-1 py-0.5 rounded font-mono">Not specified</code>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Interactive Meeting Minutes Dashboard -->
+      <section class="lg:col-span-7 flex flex-col gap-5">
+
+        <!-- Action Bar: Export Buttons -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <h2 class="text-base font-bold text-slate-800">Minutes Dashboard</h2>
+            <span class="text-xs text-slate-400 font-normal hidden sm:inline">(Click any field to edit live)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnExportDocx" type="button" disabled class="px-3 py-2 rounded-xl border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
+              <span>Export DOCX</span>
+            </button>
+            <button id="btnExportPdf" type="button" disabled class="px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-xs shadow-sm shadow-brand-500/20 transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading State Skeleton Overlay -->
+        <div id="loadingState" class="hidden bg-white rounded-2xl border border-slate-200/80 shadow-sm p-12 flex flex-col items-center justify-center text-center gap-4">
+          <div class="relative w-16 h-16">
+            <div class="w-16 h-16 rounded-full border-4 border-brand-100 border-t-brand-600 animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <h3 class="text-base font-bold text-slate-800">Analyzing Meeting Transcript</h3>
+            <p class="text-xs text-slate-500 max-w-sm">
+              Processing dialogue with Gemini 1.5 Flash, segregating confirmed decisions, identifying owners, and filtering open debates...
+            </p>
+          </div>
+        </div>
+
+        <!-- Initial Placeholder State -->
+        <div id="emptyState" class="bg-white rounded-2xl border border-dashed border-slate-200 p-12 flex flex-col items-center justify-center text-center gap-3">
+          <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+            <svg class="w-8 h-8 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-700">No Minutes Generated Yet</h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-xs">Upload a file or paste your meeting transcript on the left, then click "Generate Meeting Minutes".</p>
+          </div>
+        </div>
+
+        <!-- Live ContentEditable Minutes Dashboard Container -->
+        <article id="minutesDashboard" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex flex-col gap-6">
+
+          <!-- Header Section: Title, Date, Attendees -->
+          <header class="border-b border-slate-200 pb-5 flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+              <h2 id="editableTitle" contenteditable="true" class="text-2xl font-extrabold text-slate-900 tracking-tight" title="Click to edit title">
+                Product & Engineering Sync
+              </h2>
+              <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <span>Date:</span>
+                <span id="editableDate" contenteditable="true" class="font-semibold text-slate-700" title="Click to edit date">October 24, 2026</span>
+              </div>
+            </div>
+
+            <!-- Attendees Pills -->
+            <div class="flex items-start gap-2 pt-1">
+              <span class="text-xs font-semibold text-slate-400 mt-1">Attendees:</span>
+              <div id="editableAttendees" class="flex flex-wrap gap-1.5 flex-1" title="Click to edit attendees">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </header>
+
+          <!-- Executive Summary -->
+          <section class="flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Executive Summary</span>
+            </div>
+            <div id="editableSummary" contenteditable="true" class="text-sm text-slate-700 leading-relaxed bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/60" title="Click to edit executive summary">
+            </div>
+          </section>
+
+          <!-- Segregated Decisions: Confirmed vs Pending -->
+          <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- Confirmed Decisions Card -->
+            <div class="bg-emerald-50/40 rounded-xl border border-emerald-200/70 p-4 flex flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-800">Confirmed Decisions</h3>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Final</span>
+              </div>
+              <ul id="editableConfirmedDecisions" class="flex flex-col gap-2 text-xs text-slate-700">
+                <!-- Populated dynamically -->
+              </ul>
+              <button type="button" onclick="addConfirmedDecision()" class="text-left text-[11px] text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 mt-1">
+                + Add confirmed decision
+              </button>
+            </div>
+
+            <!-- Pending Discussions Card -->
+            <div class="bg-amber-50/40 rounded-xl border border-amber-200/70 p-4 flex flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-amber-800">Pending Discussions</h3>
+                </div>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Under Review</span>
+              </div>
+              <ul id="editablePendingDecisions" class="flex flex-col gap-2 text-xs text-slate-700">
+                <!-- Populated dynamically -->
+              </ul>
+              <button type="button" onclick="addPendingDecision()" class="text-left text-[11px] text-amber-700 hover:text-amber-900 font-semibold flex items-center gap-1 mt-1">
+                + Add pending discussion
+              </button>
+            </div>
+
+          </section>
+
+          <!-- Action Items Table -->
+          <section class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Action Items & Ownership</span>
+              <button type="button" onclick="addActionItem()" class="text-xs text-brand-600 hover:text-brand-700 font-semibold">
+                + Add Action Item
+              </button>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-100/75 text-slate-600 font-semibold border-b border-slate-200">
+                  <tr>
+                    <th class="py-2.5 px-3">Task Description</th>
+                    <th class="py-2.5 px-3 w-36">Owner</th>
+                    <th class="py-2.5 px-3 w-32">Deadline</th>
+                    <th class="py-2.5 px-2 w-10 text-center"></th>
+                  </tr>
+                </thead>
+                <tbody id="editableActionItems" class="divide-y divide-slate-100 text-slate-700">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Key Discussion Highlights -->
+          <section class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Key Discussion Highlights</span>
+              <button type="button" onclick="addDiscussionTopic()" class="text-xs text-brand-600 hover:text-brand-700 font-semibold">
+                + Add Topic
+              </button>
+            </div>
+            <div id="editableDiscussions" class="flex flex-col gap-3">
+              <!-- Populated dynamically -->
+            </div>
+          </section>
+
+        </article>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-16 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+      <span id="toastIcon">ℹ️</span>
+      <span id="toastMsg">Notification</span>
+    </div>
+  </div>
+
+  <!-- Client-side script -->
+  <script>
+    // State management
+    let currentMinutes = null;
+
+    const sampleTranscript = `Meeting Transcript: Product & Engineering Sync
+Date: October 24, 2026
+Attendees: Alex (Product Lead), Sarah (Engineering Lead), David (Backend Engineer), Priya (QA Lead)
+
+Alex: Thanks everyone for joining today's sync. We have a few key items to discuss: our theme releases, the account archiving feature, and documentation. Let's start with the theme support for our upcoming release.
+
+Sarah: We evaluated both dark mode and light mode over the last sprint. The feedback from beta users indicates that the high-contrast light mode has been the most requested accessibility feature.
+
+Alex: Exactly. So let's make it official: we are confirming Light mode for Q3 release. We will push dark mode to Q4. Is everyone agreed?
+
+Sarah: Agreed. I will assign the frontend ticket today.
+
+David: Sounds good to me.
+
+Alex: Great. Next topic is account archiving. There was a proposal to automatically archive inactive accounts after 180 days instead of permanently deleting them. What is the current status?
+
+Sarah: Legal and compliance sent over initial guidelines, but security raised questions about data retention and GDPR compliance. We haven't decided whether to automatically archive or simply notify users to self-archive.
+
+Alex: Right, this is still open. Let's keep account archiving as a pending discussion. We need legal and security to align before we make any final call on this. Sarah, can you follow up with legal on that?
+
+Sarah: Yes, I will schedule a follow-up with legal to review the compliance criteria.
+
+David: On the backend side, I need to update the public API documentation to reflect the new rate limits and endpoints. I will complete this by August 20th.
+
+Alex: Perfect. Alex, which is myself, I'll finalize the Light mode UI theme toggle specifications by August 15th.
+
+Priya: From QA, I will prepare performance testing benchmarks for the new release flow. We need to make sure the load times don't regress.
+
+Alex: Awesome. Any deadline on that Priya?
+
+Priya: We haven't set a hard date yet, so we'll fit it into sprint capacity.
+
+Alex: Sounds good. Let's wrap up and review our next steps in next week's standup. Thanks everyone!`;
+
+    // Elements
+    const transcriptText = document.getElementById('transcriptText');
+    const charCount = document.getElementById('charCount');
+    const btnLoadSample = document.getElementById('btnLoadSample');
+    const btnPaste = document.getElementById('btnPaste');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const btnRemoveFile = document.getElementById('btnRemoveFile');
+
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    const minutesDashboard = document.getElementById('minutesDashboard');
+    const btnExportPdf = document.getElementById('btnExportPdf');
+    const btnExportDocx = document.getElementById('btnExportDocx');
+
+    let uploadedFile = null;
+
+    // Toast helper
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+      toastMsg.textContent = msg;
+      toastIcon.textContent = isError ? '⚠️' : '✅';
+      toast.classList.remove('translate-y-16', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.add('translate-y-16', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    }
+
+    // Char count
+    transcriptText.addEventListener('input', () => {
+      charCount.textContent = `${transcriptText.value.length} characters`;
+    });
+
+    // Load sample
+    btnLoadSample.addEventListener('click', () => {
+      transcriptText.value = sampleTranscript;
+      charCount.textContent = `${transcriptText.value.length} characters`;
+      showToast('Sample transcript loaded!');
+    });
+
+    // Paste button
+    btnPaste.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        transcriptText.value = text;
+        charCount.textContent = `${text.length} characters`;
+        showToast('Pasted from clipboard!');
+      } catch (err) {
+        showToast('Clipboard access denied or unsupported.', true);
+      }
+    });
+
+    // File Drag & Drop
+    dropZone.addEventListener('click', (e) => {
+      if (e.target !== btnRemoveFile) fileInput.click();
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-brand-500', 'bg-brand-50/40');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-brand-500', 'bg-brand-50/40');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-brand-500', 'bg-brand-50/40');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileSelection(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileSelection(e.target.files[0]);
+      }
+    });
+
+    function handleFileSelection(file) {
+      if (!file.name.endsWith('.txt') && !file.name.endsWith('.docx')) {
+        showToast('Please upload a .txt or .docx file.', true);
+        return;
+      }
+      uploadedFile = file;
+      fileName.textContent = file.name;
+      fileInfo.classList.remove('hidden');
+      showToast(`Selected file: ${file.name}`);
+    }
+
+    btnRemoveFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      uploadedFile = null;
+      fileInput.value = '';
+      fileInfo.classList.add('hidden');
+    });
+
+    // Generate Minutes API trigger
+    btnGenerate.addEventListener('click', async () => {
+      const text = transcriptText.value.trim();
+      if (!text && !uploadedFile) {
+        showToast('Please provide a transcript or upload a file first.', true);
+        return;
+      }
+
+      // UI state transition
+      btnGenerate.disabled = true;
+      emptyState.classList.add('hidden');
+      minutesDashboard.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+
+      try {
+        let response;
+        if (uploadedFile) {
+          const formData = new FormData();
+          formData.append('file', uploadedFile);
+          if (text) formData.append('transcript', text);
+          response = await fetch('/generate', {
+            method: 'POST',
+            body: formData
+          });
+        } else {
+          response = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transcript: text })
+          });
+        }
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to generate meeting minutes.');
+        }
+
+        currentMinutes = data;
+        renderMinutes(data);
+        showToast('Meeting minutes generated successfully!');
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, true);
+        emptyState.classList.remove('hidden');
+      } finally {
+        loadingState.classList.add('hidden');
+        btnGenerate.disabled = false;
+      }
+    });
+
+    // Render Minutes to DOM
+    function renderMinutes(data) {
+      document.getElementById('editableTitle').textContent = data.title || 'Meeting Minutes';
+      document.getElementById('editableDate').textContent = data.date || 'Not specified';
+      
+      // Attendees
+      const attendeesContainer = document.getElementById('editableAttendees');
+      attendeesContainer.innerHTML = '';
+      const attendees = Array.isArray(data.attendees) ? data.attendees : [];
+      if (attendees.length === 0) {
+        attendees.push('Attendees Not Specified');
+      }
+      attendees.forEach(att => {
+        const span = document.createElement('span');
+        span.contentEditable = "true";
+        span.className = "px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200";
+        span.textContent = att;
+        attendeesContainer.appendChild(span);
+      });
+
+      // Executive Summary
+      document.getElementById('editableSummary').textContent = data.summary || 'Summary not provided.';
+
+      // Decisions
+      const confirmedUl = document.getElementById('editableConfirmedDecisions');
+      const pendingUl = document.getElementById('editablePendingDecisions');
+      confirmedUl.innerHTML = '';
+      pendingUl.innerHTML = '';
+
+      const decisions = Array.isArray(data.decisions) ? data.decisions : [];
+      decisions.forEach((dec) => {
+        const li = document.createElement('li');
+        li.className = "flex items-start justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200/80 shadow-xs group";
+        
+        const content = document.createElement('span');
+        content.contentEditable = "true";
+        content.className = "flex-1";
+        content.textContent = dec.description;
+        li.appendChild(content);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = "button";
+        delBtn.className = "text-slate-300 hover:text-red-500 font-bold px-1";
+        delBtn.innerHTML = "&times;";
+        delBtn.onclick = () => li.remove();
+        li.appendChild(delBtn);
+
+        if (dec.status === 'confirmed') {
+          confirmedUl.appendChild(li);
+        } else {
+          pendingUl.appendChild(li);
+        }
+      });
+
+      // Action Items
+      const actionTbody = document.getElementById('editableActionItems');
+      actionTbody.innerHTML = '';
+      const actionItems = Array.isArray(data.action_items) ? data.action_items : [];
+      actionItems.forEach(item => {
+        addActionItemRow(item.task, item.owner, item.deadline || 'Not specified');
+      });
+
+      // Key Discussions
+      const discContainer = document.getElementById('editableDiscussions');
+      discContainer.innerHTML = '';
+      const discussions = Array.isArray(data.key_discussions) ? data.key_discussions : [];
+      discussions.forEach(topicItem => {
+        addDiscussionTopicBlock(topicItem.topic, topicItem.points || []);
+      });
+
+      // Reveal dashboard and enable export buttons
+      minutesDashboard.classList.remove('hidden');
+      btnExportPdf.disabled = false;
+      btnExportDocx.disabled = false;
+    }
+
+    // Helper functions for dynamic UI edits
+    function addConfirmedDecision(text = "New confirmed decision...") {
+      const ul = document.getElementById('editableConfirmedDecisions');
+      const li = document.createElement('li');
+      li.className = "flex items-start justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200/80 shadow-xs";
+      li.innerHTML = `<span contenteditable="true" class="flex-1">${text}</span><button type="button" onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-500 font-bold px-1">&times;</button>`;
+      ul.appendChild(li);
+    }
+
+    function addPendingDecision(text = "New pending discussion item...") {
+      const ul = document.getElementById('editablePendingDecisions');
+      const li = document.createElement('li');
+      li.className = "flex items-start justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200/80 shadow-xs";
+      li.innerHTML = `<span contenteditable="true" class="flex-1">${text}</span><button type="button" onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-500 font-bold px-1">&times;</button>`;
+      ul.appendChild(li);
+    }
+
+    function addActionItemRow(task = "Action item description", owner = "Assignee", deadline = "Not specified") {
+      const tbody = document.getElementById('editableActionItems');
+      const tr = document.createElement('tr');
+      tr.className = "hover:bg-slate-50 transition-colors";
+      tr.innerHTML = `
+        <td class="py-2.5 px-3"><div contenteditable="true">${task}</div></td>
+        <td class="py-2.5 px-3"><div contenteditable="true" class="font-medium text-slate-800">${owner}</div></td>
+        <td class="py-2.5 px-3"><div contenteditable="true" class="inline-block px-2 py-0.5 rounded text-[11px] font-mono ${deadline === 'Not specified' ? 'bg-slate-100 text-slate-600' : 'bg-brand-50 text-brand-700 font-semibold'}">${deadline}</div></td>
+        <td class="py-2.5 px-2 text-center"><button type="button" onclick="this.closest('tr').remove()" class="text-slate-300 hover:text-red-500 font-bold">&times;</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function addActionItem() {
+      addActionItemRow();
+    }
+
+    function addDiscussionTopicBlock(topicName = "Discussion Topic", points = ["Key point discussed..."]) {
+      const container = document.getElementById('editableDiscussions');
+      const block = document.createElement('div');
+      block.className = "p-3.5 rounded-xl border border-slate-200 bg-white flex flex-col gap-2";
+      
+      let pointsHtml = points.map(pt => `<li class="flex items-start gap-2"><span class="text-slate-400 mt-1">•</span><span contenteditable="true" class="flex-1">${pt}</span><button type="button" onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-500 font-bold">&times;</button></li>`).join('');
+
+      block.innerHTML = `
+        <div class="flex items-center justify-between">
+          <h4 contenteditable="true" class="text-xs font-bold text-slate-800 uppercase tracking-wide">${topicName}</h4>
+          <button type="button" onclick="this.closest('div.border').remove()" class="text-xs text-red-500 hover:text-red-700 font-medium">Delete Topic</button>
+        </div>
+        <ul class="flex flex-col gap-1.5 text-xs text-slate-700 pl-1">
+          ${pointsHtml}
+        </ul>
+        <button type="button" onclick="addPointToTopic(this)" class="text-left text-[11px] text-brand-600 hover:text-brand-700 font-semibold mt-1">+ Add point</button>
+      `;
+      container.appendChild(block);
+    }
+
+    function addDiscussionTopic() {
+      addDiscussionTopicBlock();
+    }
+
+    function addPointToTopic(btn) {
+      const ul = btn.previousElementSibling;
+      const li = document.createElement('li');
+      li.className = "flex items-start gap-2";
+      li.innerHTML = `<span class="text-slate-400 mt-1">•</span><span contenteditable="true" class="flex-1">New discussion point...</span><button type="button" onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-500 font-bold">&times;</button>`;
+      ul.appendChild(li);
+    }
+
+    // Scrape live edited DOM into Minutes Schema
+    function scrapeEditedDOM() {
+      const title = document.getElementById('editableTitle').innerText.trim();
+      const date = document.getElementById('editableDate').innerText.trim();
+      
+      const attendees = [];
+      document.querySelectorAll('#editableAttendees span').forEach(el => {
+        const text = el.innerText.trim();
+        if (text) attendees.push(text);
+      });
+
+      const summary = document.getElementById('editableSummary').innerText.trim();
+
+      const decisions = [];
+      document.querySelectorAll('#editableConfirmedDecisions li span[contenteditable]').forEach(el => {
+        const desc = el.innerText.trim();
+        if (desc) decisions.push({ status: 'confirmed', description: desc });
+      });
+      document.querySelectorAll('#editablePendingDecisions li span[contenteditable]').forEach(el => {
+        const desc = el.innerText.trim();
+        if (desc) decisions.push({ status: 'pending', description: desc });
+      });
+
+      const action_items = [];
+      document.querySelectorAll('#editableActionItems tr').forEach(tr => {
+        const cols = tr.querySelectorAll('td');
+        if (cols.length >= 3) {
+          const task = cols[0].innerText.trim();
+          const owner = cols[1].innerText.trim();
+          let deadline = cols[2].innerText.trim();
+          if (!deadline) deadline = "Not specified";
+          if (task) action_items.push({ task, owner, deadline });
+        }
+      });
+
+      const key_discussions = [];
+      document.querySelectorAll('#editableDiscussions > div').forEach(topicBlock => {
+        const heading = topicBlock.querySelector('h4');
+        const topic = heading ? heading.innerText.trim() : 'Discussion';
+        const points = [];
+        topicBlock.querySelectorAll('ul li span[contenteditable]').forEach(pt => {
+          const text = pt.innerText.trim();
+          if (text) points.push(text);
+        });
+        if (topic) key_discussions.push({ topic, points });
+      });
+
+      return {
+        title,
+        date,
+        attendees,
+        summary,
+        decisions,
+        action_items,
+        key_discussions
+      };
+    }
+
+    // Export PDF Handler
+    btnExportPdf.addEventListener('click', async () => {
+      const payload = scrapeEditedDOM();
+      btnExportPdf.disabled = true;
+      btnExportPdf.textContent = 'Generating PDF...';
+
+      try {
+        const res = await fetch('/export/pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to export PDF.');
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        const cleanName = (payload.title || 'Meeting_Minutes').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.download = `${cleanName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        showToast('PDF exported successfully!');
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btnExportPdf.disabled = false;
+        btnExportPdf.innerHTML = `
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Export PDF</span>
+        `;
+      }
+    });
+
+    // Export DOCX Handler
+    btnExportDocx.addEventListener('click', async () => {
+      const payload = scrapeEditedDOM();
+      btnExportDocx.disabled = true;
+      btnExportDocx.textContent = 'Generating DOCX...';
+
+      try {
+        const res = await fetch('/export/docx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to export DOCX.');
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        const cleanName = (payload.title || 'Meeting_Minutes').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.download = `${cleanName}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        showToast('DOCX exported successfully!');
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btnExportDocx.disabled = false;
+        btnExportDocx.innerHTML = `
+          <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
+          <span>Export DOCX</span>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
